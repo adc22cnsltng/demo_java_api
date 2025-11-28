@@ -1,30 +1,85 @@
 package com.demoproject.demo.services;
 
 import com.demoproject.demo.dtos.OrderDTO;
+import com.demoproject.demo.dtos.OrderItemDTO;
 import com.demoproject.demo.entities.Order;
+import com.demoproject.demo.entities.OrderItem;
+import com.demoproject.demo.entities.Product;
+import com.demoproject.demo.entities.User;
 import com.demoproject.demo.repositories.OrderRepository;
+import com.demoproject.demo.repositories.ProductRepository;
+import com.demoproject.demo.repositories.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class OrderService {
 
-    private final OrderRepository orderRepository;
+    @Autowired
+    private OrderRepository orderRepository;
 
-    public OrderService(OrderRepository orderRepository) {
-        this.orderRepository = orderRepository;
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    public List<OrderDTO> getAll() {
+        return orderRepository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
-    public OrderDTO getOrderById(Long id) {
+    public OrderDTO create(OrderDTO dto) {
 
-        Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+        Order order = new Order();
 
-        // Conversione entity → DTO
+        // USER
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        order.setUser(user);
+
+        List<OrderItem> items = new ArrayList<>();
+
+        for (OrderItemDTO itemDTO : dto.getItems()) {
+            Product product = productRepository.findById(itemDTO.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setProduct(product);
+            item.setQuantity(itemDTO.getQuantity());
+
+            items.add(item);
+        }
+
+        order.setItems(items);
+
+        order = orderRepository.save(order);
+
+        return toDTO(order);
+    }
+
+    //entity to dto mapping method
+    private OrderDTO toDTO(Order order) {
+
+        List<OrderItemDTO> items = order.getItems().stream()
+                .map(i -> new OrderItemDTO(
+                        i.getProduct().getId(),
+                        i.getQuantity(),
+                        i.getProduct().getPrice()
+                ))
+                .toList();
+
         return new OrderDTO(
-                order.getId(),
-                order.getUser(),
-                order.getCreatedAt(),
-                order.getTotal()
+                order.getUser().getName(),  // oppure userId se vuoi
+                order.getTotal(),
+                items     // ✔ qui ora passi i DTO corretti
         );
     }
 }
+
