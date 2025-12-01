@@ -59,10 +59,18 @@ public class OrderService {
 
         order.setItems(items);
 
+        // 🔥 CALCOLO TOTAL QUI
+        double total = items.stream()
+                .mapToDouble(i -> i.getProduct().getPrice() * i.getQuantity())
+                .sum();
+
+        order.setTotal(total); // <- OBBLIGATORIO
+
         order = orderRepository.save(order);
 
         return toDTO(order);
     }
+
 
     //entity to dto mapping method
     private OrderDTO toDTO(Order order) {
@@ -80,6 +88,13 @@ public class OrderService {
                 order.getTotal(),
                 items     // ✔ qui ora passi i DTO corretti
         );
+    }
+
+    public OrderDTO getById(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        return toDTO(order);
     }
 }
 

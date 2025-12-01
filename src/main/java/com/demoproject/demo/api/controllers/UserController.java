@@ -2,6 +2,7 @@ package com.demoproject.demo.api.controllers;
 
 import com.demoproject.demo.entities.User;
 import com.demoproject.demo.repositories.UserRepository;
+import com.demoproject.demo.services.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,50 +12,43 @@ import java.util.List;
 @RequestMapping("/users")
 public class UserController {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
 
-    public UserController(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
 
     // GET ALL
     @GetMapping
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        return userService.getAll();
     }
 
     // GET BY ID
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        return userRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        User user = userService.getById(id);
+        return ResponseEntity.ok(user);
     }
 
     // CREATE
     @PostMapping
     public User createUser(@RequestBody User user) {
-        return userRepository.save(user);
+        return userService.create(user);
     }
 
     // UPDATE
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User updated) {
-        return userRepository.findById(id)
-                .map(user -> {
-                    user.setName(updated.getName());
-                    user.setSurname(updated.getSurname());
-                    user.setEmail(updated.getEmail());
-                    return ResponseEntity.ok(userRepository.save(user));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        User user = userService.update(id, updated);
+        return ResponseEntity.ok(user);
     }
 
     // DELETE
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        if(!userRepository.existsById(id)) return ResponseEntity.notFound().build();
-        userRepository.deleteById(id);
+        userService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }
+
